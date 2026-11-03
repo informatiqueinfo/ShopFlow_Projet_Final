@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: ShopFlow
+    orgId: 1
+    folder: "Resilience"
+    type: file
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

@@ -1,0 +1,22 @@
+groups:
+  - name: shopflow-slo
+    interval: 15s
+    rules:
+      - alert: ShopFlowSLIUnder995
+        expr: |
+          (
+            sum(rate(shopflow_sli_good_total{service="gateway",path="/catalogue"}[2m]))
+            /
+            clamp_min(sum(rate(shopflow_sli_requests_total{service="gateway",path="/catalogue"}[2m])), 0.001)
+          ) < 0.995
+        for: 1m
+        labels: {severity: warning, team: shopflow}
+        annotations:
+          summary: "ShopFlow catalogue SLI sous 99,5 % sur 2 minutes"
+          runbook: "Voir runbooks/incident.md et les métriques de stock, CB, cache et shedder"
+      - alert: ShopFlowInstanceDown
+        expr: up{job=~"gateway|stock|payment"} == 0
+        for: 30s
+        labels: {severity: critical, team: shopflow}
+        annotations:
+          summary: "Instance ShopFlow non joignable"

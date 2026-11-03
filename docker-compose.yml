@@ -1,0 +1,76 @@
+name: shopflow-final
+services:
+  gateway:
+    build: .
+    image: shopflow-final-gateway:1.0
+    command: ["python", "-m", "shopflow.gateway"]
+    environment:
+      PORT: "8000"
+      STOCK_URL: http://stock:8080
+      PAYMENT_URL: http://payment:8081
+      RESILIENCE_ENABLED: "1"
+    expose: ["8000"]
+    depends_on:
+      stock: {condition: service_healthy}
+      payment: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+  stock:
+    build: .
+    image: shopflow-final-stock:1.0
+    command: ["python", "-m", "shopflow.stock"]
+    environment:
+      PORT: "8080"
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-local-demo-only}
+    expose: ["8080"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health/ready',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+  payment:
+    build: .
+    image: shopflow-final-payment:1.0
+    command: ["python", "-m", "shopflow.payment"]
+    environment:
+      PORT: "8081"
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-local-demo-only}
+    expose: ["8081"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health/ready',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+  proxy:
+    image: nginx:1.27-alpine
+    ports: ["8000:80"]
+    volumes:
+      - ./ops/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      gateway: {condition: service_healthy}
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    volumes:
+      - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports: ["9090:9090"]
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-demo-change-me}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
+    restart: unless-stopped

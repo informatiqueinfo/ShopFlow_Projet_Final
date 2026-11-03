@@ -1,0 +1,15 @@
+{
+  "title": "ShopFlow - Résilience et SLO",
+  "uid": "shopflow-final",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {"from": "now-15m", "to": "now"},
+  "panels": [
+    {"id": 1, "title": "SLI catalogue 2 min", "type": "stat", "gridPos": {"h": 7,"w": 8,"x": 0,"y": 0}, "datasource": {"type": "prometheus", "uid": "shopflow-prometheus"}, "targets": [{"expr": "100 * sum(rate(shopflow_sli_good_total{service=\"gateway\",path=\"/catalogue\"}[2m])) / clamp_min(sum(rate(shopflow_sli_requests_total{service=\"gateway\",path=\"/catalogue\"}[2m])),0.001)", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}}},
+    {"id": 2, "title": "Réponses par code HTTP", "type": "timeseries", "gridPos": {"h": 8,"w": 12,"x": 0,"y": 7}, "datasource": {"type": "prometheus", "uid": "shopflow-prometheus"}, "targets": [{"expr": "sum by (status) (rate(shopflow_http_requests_total{service=\"gateway\"}[1m]))", "legendFormat": "HTTP {{status}}", "refId": "A"}]},
+    {"id": 3, "title": "Protection : quota, délestage, disjoncteur, fallback", "type": "timeseries", "gridPos": {"h": 8,"w": 12,"x": 12,"y": 7}, "datasource": {"type": "prometheus", "uid": "shopflow-prometheus"}, "targets": [{"expr": "sum by (__name__) (rate({__name__=~\"shopflow_(rate_limit_rejections_total|load_shed_rejections_total|circuit_breaker_rejections_total|fallback_total)\"}[1m]))", "legendFormat": "{{__name__}}", "refId": "A"}]},
+    {"id": 4, "title": "P95 HTTP réponses acceptées", "type": "timeseries", "gridPos": {"h": 8,"w": 12,"x": 0,"y": 15}, "datasource": {"type": "prometheus", "uid": "shopflow-prometheus"}, "targets": [{"expr": "histogram_quantile(0.95, sum by (le, path) (rate(shopflow_http_request_duration_seconds_bucket{service=\"gateway\",status=\"200\"}[2m])))", "legendFormat": "{{path}}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "s"}}},
+    {"id": 5, "title": "Dépendances et retries", "type": "timeseries", "gridPos": {"h": 8,"w": 12,"x": 12,"y": 15}, "datasource": {"type": "prometheus", "uid": "shopflow-prometheus"}, "targets": [{"expr": "sum by (__name__,dependency) (rate({__name__=~\"shopflow_(dependency_failures_total|timeouts_total|retries_total|bulkhead_rejections_total)\"}[1m]))", "legendFormat": "{{dependency}} - {{__name__}}", "refId": "A"}]}
+  ]
+}

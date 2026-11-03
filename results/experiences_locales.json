@@ -1,0 +1,157 @@
+{
+  "methodology": "Deux exécutions isolées par scénario : sans puis avec patterns.",
+  "criteria": "SLI = HTTP 200 nominal ou dégradé en moins de 1 s; arrêt si moins de 2 succès sur les 8 derniers appels.",
+  "scenarios": {
+    "A": {
+      "title": "30pct_erreurs_stock",
+      "hypothesis": "Retries, CB et cache réduisent les échecs intermittents.",
+      "before": {
+        "requests": 12,
+        "sli_pct": 75.0,
+        "statuses": {
+          "200": 9,
+          "503": 3
+        },
+        "degraded": 0,
+        "p95_200_ms": 1.8,
+        "safety_stop": false
+      },
+      "after": {
+        "requests": 12,
+        "sli_pct": 100.0,
+        "statuses": {
+          "200": 12
+        },
+        "degraded": 1,
+        "p95_200_ms": 2.1,
+        "safety_stop": false
+      },
+      "abort_criterion": "<2 succès sur les 8 derniers appels; phase arrêtée au plus tard après le nombre d'échantillons prévu."
+    },
+    "B": {
+      "title": "stock_indisponible",
+      "hypothesis": "La consultation continue en dégradé via le cache pendant la panne totale.",
+      "before": {
+        "requests": 8,
+        "sli_pct": 0.0,
+        "statuses": {
+          "503": 8
+        },
+        "degraded": 0,
+        "p95_200_ms": null,
+        "safety_stop": true
+      },
+      "after": {
+        "requests": 12,
+        "sli_pct": 100.0,
+        "statuses": {
+          "200": 12
+        },
+        "degraded": 12,
+        "p95_200_ms": 2.1,
+        "safety_stop": false
+      },
+      "abort_criterion": "<2 succès sur les 8 derniers appels; phase arrêtée au plus tard après le nombre d'échantillons prévu."
+    },
+    "C": {
+      "title": "stock_lent_1300ms",
+      "hypothesis": "Le timeout borne le délai et le cache protège le SLI.",
+      "before": {
+        "requests": 8,
+        "sli_pct": 0.0,
+        "statuses": {
+          "200": 8
+        },
+        "degraded": 0,
+        "p95_200_ms": 1304.5,
+        "safety_stop": true
+      },
+      "after": {
+        "requests": 12,
+        "sli_pct": 100.0,
+        "statuses": {
+          "200": 12
+        },
+        "degraded": 12,
+        "p95_200_ms": 516.3,
+        "safety_stop": false
+      },
+      "abort_criterion": "<2 succès sur les 8 derniers appels; phase arrêtée au plus tard après le nombre d'échantillons prévu."
+    },
+    "D": {
+      "title": "reponse_paiement_perdue",
+      "hypothesis": "Le retry avec la même clé retrouve le paiement sans double débit.",
+      "before": {
+        "requests": 8,
+        "sli_pct": 0.0,
+        "statuses": {
+          "503": 8
+        },
+        "degraded": 0,
+        "p95_200_ms": null,
+        "safety_stop": true,
+        "distinct_charges": 8
+      },
+      "after": {
+        "requests": 12,
+        "sli_pct": 100.0,
+        "statuses": {
+          "200": 12
+        },
+        "degraded": 0,
+        "p95_200_ms": 38.6,
+        "safety_stop": false,
+        "distinct_charges": 12
+      },
+      "abort_criterion": "<2 succès sur les 8 derniers appels; phase arrêtée au plus tard après le nombre d'échantillons prévu."
+    },
+    "E": {
+      "title": "client_abusif_50rps",
+      "hypothesis": "Le quota isole le client abusif et protège le témoin.",
+      "before": {
+        "requests": 89,
+        "sli_pct": 100.0,
+        "statuses": {
+          "200": 89
+        },
+        "degraded": 0,
+        "p95_200_ms": 2.6,
+        "safety_stop": false,
+        "witness": {
+          "requests": 4,
+          "sli_pct": 100.0,
+          "statuses": {
+            "200": 4
+          },
+          "degraded": 0,
+          "p95_200_ms": 2.9,
+          "safety_stop": false
+        },
+        "flood_mode": "sans_quota"
+      },
+      "after": {
+        "requests": 93,
+        "sli_pct": 20.43,
+        "statuses": {
+          "200": 19,
+          "429": 74
+        },
+        "degraded": 0,
+        "p95_200_ms": 2.9,
+        "safety_stop": false,
+        "witness": {
+          "requests": 4,
+          "sli_pct": 100.0,
+          "statuses": {
+            "200": 4
+          },
+          "degraded": 0,
+          "p95_200_ms": 2.5,
+          "safety_stop": false
+        },
+        "flood_mode": "quota_10_jetons_5_par_s"
+      },
+      "abort_criterion": "<2 succès sur les 8 derniers appels; phase arrêtée au plus tard après le nombre d'échantillons prévu."
+    }
+  }
+}
